@@ -4,14 +4,54 @@
 <meta charset="UTF-8">
 <title>Snake Game</title>
 <style>
+  body {
+    margin: 0;
+    text-align: center;
+    font-family: sans-serif;
+    background: linear-gradient(#a8e6ff, #ffffff);
+  }
+
   canvas {
-    background: black;
+    background: #f0f0f0;
     display: block;
-    margin: auto;
+    margin: 20px auto;
+    border: 2px solid #333;
+  }
+
+  #menu, #gameover {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px 40px;
+    border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  }
+
+  button {
+    padding: 10px 20px;
+    font-size: 18px;
+    border: none;
+    border-radius: 10px;
+    background: #4CAF50;
+    color: white;
+    cursor: pointer;
   }
 </style>
 </head>
 <body>
+
+<div id="menu">
+  <h1>🐍 Snake Game</h1>
+  <button onclick="startGame()">スタート</button>
+</div>
+
+<div id="gameover" style="display:none;">
+  <h2>ゲームオーバー</h2>
+  <p id="finalScore"></p>
+  <button onclick="restartGame()">もう一回</button>
+</div>
 
 <canvas id="game" width="400" height="400"></canvas>
 
@@ -19,55 +59,100 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let snake = [{x: 200, y: 200}];
-let dx = 20;
-let dy = 0;
-let food = {x: 100, y: 100};
+let snake, dx, dy, food, score, gameLoop;
 
-document.addEventListener("keydown", changeDirection);
+function init() {
+  snake = [{x: 200, y: 200}];
+  dx = 20;
+  dy = 0;
+  food = randomFood();
+  score = 0;
+}
 
-function changeDirection(e) {
+function startGame() {
+  document.getElementById("menu").style.display = "none";
+  init();
+  gameLoop = setInterval(draw, 120);
+}
+
+function restartGame() {
+  document.getElementById("gameover").style.display = "none";
+  init();
+  gameLoop = setInterval(draw, 120);
+}
+
+document.addEventListener("keydown", e => {
   if (e.key === "ArrowUp" && dy === 0) { dx = 0; dy = -20; }
   if (e.key === "ArrowDown" && dy === 0) { dx = 0; dy = 20; }
   if (e.key === "ArrowLeft" && dx === 0) { dx = -20; dy = 0; }
   if (e.key === "ArrowRight" && dx === 0) { dx = 20; dy = 0; }
+});
+
+function randomFood() {
+  return {
+    x: Math.floor(Math.random() * 20) * 20,
+    y: Math.floor(Math.random() * 20) * 20
+  };
+}
+
+function drawGrid() {
+  ctx.strokeStyle = "#ddd";
+  for (let i = 0; i < 400; i += 20) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, 400);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.lineTo(400, i);
+    ctx.stroke();
+  }
 }
 
 function draw() {
   ctx.clearRect(0, 0, 400, 400);
 
-  // 蛇
-  snake.forEach(part => {
-    ctx.fillStyle = "lime";
+  drawGrid();
+
+  // 蛇（頭だけ濃い色）
+  snake.forEach((part, i) => {
+    ctx.fillStyle = i === 0 ? "#2ecc71" : "#6ee7a2";
     ctx.fillRect(part.x, part.y, 20, 20);
   });
 
   // 餌
-  ctx.fillStyle = "red";
+  ctx.fillStyle = "#ff4d4d";
   ctx.fillRect(food.x, food.y, 20, 20);
 
-  // 移動
+  // スコア表示
+  ctx.fillStyle = "#333";
+  ctx.font = "16px Arial";
+  ctx.fillText("Score: " + score, 10, 20);
+
   const head = {x: snake[0].x + dx, y: snake[0].y + dy};
 
-  // 衝突
-  if (head.x < 0 || head.y < 0 || head.x >= 400 || head.y >= 400) {
-    alert("ゲームオーバー");
-    snake = [{x: 200, y: 200}];
+  // 壁 or 自分に衝突
+  if (
+    head.x < 0 || head.y < 0 || head.x >= 400 || head.y >= 400 ||
+    snake.some(p => p.x === head.x && p.y === head.y)
+  ) {
+    clearInterval(gameLoop);
+    document.getElementById("gameover").style.display = "block";
+    document.getElementById("finalScore").innerText = "スコア: " + score;
     return;
   }
 
   snake.unshift(head);
 
-  // 餌食べる
+  // 餌食べた
   if (head.x === food.x && head.y === food.y) {
-    food.x = Math.floor(Math.random() * 20) * 20;
-    food.y = Math.floor(Math.random() * 20) * 20;
+    food = randomFood();
+    score++;
   } else {
     snake.pop();
   }
 }
-
-setInterval(draw, 150);
 </script>
 
 </body>
